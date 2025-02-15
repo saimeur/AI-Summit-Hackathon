@@ -21,8 +21,8 @@ L.Icon.Default.mergeOptions({
 export default function MapView() {
   const [path, setPath] = useState([]);
   const [city, setCity] = useState("Rennes");
-  const [startPoint, setStartPoint] = useState("48.1146, -1.657");
-  const [endPoint, setEndPoint] = useState("48.125, -1.6428");
+  const [startPoint, setStartPoint] = useState("48.11588, -1.66927");
+  const [endPoint, setEndPoint] = useState("48.11963, -1.65031");
   const [waterLevel, setWaterLevel] = useState(0);
 
   const fetchEvacuationPath = async () => {
