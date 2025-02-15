@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# CORS pour permettre les requêtes du frontend
+# Autoriser les requêtes depuis n'importe quelle origine (utile pour le développement)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,6 +13,10 @@ app.add_middleware(
 )
 
 
-@app.get("/coordinates")  # Vérifie bien que cette route existe !
+@app.get("/coordinates")
 def get_coordinates():
-    return {"lat": 48.7566, "lng": 2.3522}
+    # Coordonnées en dur (ex: Paris, France)
+    return {"lat": 48.8566, "lng": 2.3522}
+
+
+# Lancer le serveur avec : uvicorn backend:app --reload

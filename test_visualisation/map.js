@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Récupérer les coordonnées depuis l'API
     try {
-        let response = await fetch("http://127.0.0.1:8080/coordinates");
+        let response = await fetch("http://127.0.0.1:8000/coordinates");
         let data = await response.json();
 
         // Afficher un marqueur sur la carte
