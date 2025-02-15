@@ -170,5 +170,6 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-
+test_visualisation/backend/cache
+test_visualisation/backend/cache/
 
