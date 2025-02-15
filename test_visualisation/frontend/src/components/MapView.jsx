@@ -1,41 +1,63 @@
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useEffect } from 'react';
 
-// Fix pour les icônes de leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+// 🔹 Icône personnalisée pour les points de départ et d'arrivée
+const evacuationIcon = new L.Icon({
+  iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg', // Point rouge
+  iconSize: [16, 16],  
+  iconAnchor: [8, 8],  
+  popupAnchor: [0, -8]
 });
 
-function MapLogger() {
-  const map = useMap();
-  useEffect(() => {
-    console.log("Map center:", map.getCenter());
-    console.log("Map zoom:", map.getZoom());
-    console.log("Map size:", map.getSize());
-  }, [map]);
-  return null;
-}
+// 🔹 Fix pour éviter un bug d'affichage des icônes Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
 
 export default function MapView() {
-  console.log("MapView component is rendered"); // Ajoutez cette ligne pour vérifier que le composant est bien rendu
+  const [path, setPath] = useState([]);  // 🔹 Stocke la liste des points GPS
+
+  // 🔹 Fetch pour récupérer les coordonnées du chemin d’évacuation
+  useEffect(() => {
+    fetch("http://localhost:8000/coordinates")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.path && data.path.length > 1) {
+          setPath(data.path.map(point => [point.lat, point.lng]));  // 🔹 Convertit les données pour Leaflet
+        }
+      })
+      .catch((error) => console.error("Erreur lors de la récupération du chemin:", error));
+  }, []);
 
   return (
     <div id="map" style={{ height: "90vh", width: "90vw", margin: "auto" }}>
       <MapContainer center={[48.8566, 2.3522]} zoom={13} style={{ height: "100%", width: "100%" }}>
+        
+        {/* 🔹 Fond de carte sobre */}
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          subdomains='abcd'
-          maxZoom={20}
-          onLoad={() => console.log("TileLayer loaded")}
-          onError={(error) => console.error("TileLayer error:", error)}
         />
-        <MapLogger />
+
+        {/* 🔹 Affichage des points de départ et d'arrivée seulement */}
+        {path.length > 1 && (
+          <>
+            <Marker position={path[0]} icon={evacuationIcon}>
+              <Popup>🚨 Départ</Popup>
+            </Marker>
+            <Marker position={path[path.length - 1]} icon={evacuationIcon}>
+              <Popup>✅ Arrivée</Popup>
+            </Marker>
+          </>
+        )}
+
+        {/* 🔹 Affichage du chemin (une ligne bleue reliant les points) */}
+        {path.length > 1 && <Polyline positions={path} color="blue" />}
       </MapContainer>
     </div>
   );
