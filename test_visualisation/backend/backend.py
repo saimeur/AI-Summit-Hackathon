@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Autoriser les requêtes depuis n'importe quelle origine (utile pour le développement)
+# Ajouter CORS si besoin
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -12,11 +12,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 @app.get("/coordinates")
 def get_coordinates():
-    # Coordonnées en dur (ex: Paris, France)
     return {"lat": 48.8566, "lng": 2.3522}
 
-
-# Lancer le serveur avec : uvicorn backend:app --reload
+@app.get("/")
+def read_root():
+    return {"message": "Bienvenue sur l'API de prévision des inondations !"}
