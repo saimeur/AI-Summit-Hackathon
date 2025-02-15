@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Ajouter CORS si besoin
+# Activer CORS pour permettre la connexion avec le frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,7 +14,14 @@ app.add_middleware(
 
 @app.get("/coordinates")
 def get_coordinates():
-    return {"lat": 48.8566, "lng": 2.3522}
+    return {
+        "path": [
+            {"lat": 48.8566, "lng": 2.3522},  
+            {"lat": 48.8575, "lng": 2.3555}, 
+            {"lat": 48.8580, "lng": 2.3610},
+            {"lat": 48.8605, "lng": 2.3650},
+        ]
+    }
 
 @app.get("/")
 def read_root():

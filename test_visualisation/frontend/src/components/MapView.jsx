@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// 🔹 Icône personnalisée pour les points de départ et d'arrivée
+// 🔹 Icône pour les points de départ et d'arrivée
 const evacuationIcon = new L.Icon({
   iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg', // Point rouge
   iconSize: [16, 16],  
@@ -16,7 +16,7 @@ delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
     iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+    shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
 });
 
 export default function MapView() {
@@ -44,7 +44,7 @@ export default function MapView() {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
         />
 
-        {/* 🔹 Affichage des points de départ et d'arrivée seulement */}
+        {/* 🔹 Affichage des marqueurs pour les points de départ et d'arrivée */}
         {path.length > 1 && (
           <>
             <Marker position={path[0]} icon={evacuationIcon}>
@@ -56,7 +56,19 @@ export default function MapView() {
           </>
         )}
 
-        {/* 🔹 Affichage du chemin (une ligne bleue reliant les points) */}
+        {/* 🔹 Affichage des points intermédiaires avec un style discret */}
+        {path.length > 2 && path.slice(1, -1).map((position, index) => (
+          <CircleMarker 
+            key={index} 
+            center={position} 
+            radius={4}  // Taille réduite pour être discret
+            fillColor="blue" 
+            color="transparent"  // Contour transparent
+            fillOpacity={0.6}  // Légèrement visible
+          />
+        ))}
+
+        {/* 🔹 Affichage du chemin (une ligne bleue reliant tous les points) */}
         {path.length > 1 && <Polyline positions={path} color="blue" />}
       </MapContainer>
     </div>
