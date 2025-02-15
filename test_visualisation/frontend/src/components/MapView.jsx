@@ -3,9 +3,9 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from '
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// 🔹 Icône pour les points de départ et d'arrivée
+// Icône pour les points de départ et d'arrivée
 const evacuationIcon = new L.Icon({
-  iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg', // Point rouge
+  iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg',
   iconSize: [16, 16],  
   iconAnchor: [8, 8],  
   popupAnchor: [0, -8]
@@ -20,17 +20,34 @@ L.Icon.Default.mergeOptions({
 
 export default function MapView() {
   const [path, setPath] = useState([]);
+  const [city, setCity] = useState("Rennes");
+  const [startPoint, setStartPoint] = useState("48.1146, -1.657");
+  const [endPoint, setEndPoint] = useState("48.125, -1.6428");
+  const [waterLevel, setWaterLevel] = useState(0);
 
-  useEffect(() => {
-    fetch("http://localhost:8000/coordinates")
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.path && data.path.length > 1) {
-          setPath(data.path.map(point => [point.lat, point.lng]));
-        }
-      })
-      .catch((error) => console.error("Erreur lors de la récupération du chemin:", error));
-  }, []);
+  const fetchEvacuationPath = async () => {
+    if (!city || !startPoint || !endPoint) {
+      alert("Veuillez remplir tous les champs !");
+      return;
+    }
+
+    const [startLat, startLng] = startPoint.split(",").map(Number);
+    const [endLat, endLng] = endPoint.split(",").map(Number);
+
+    try {
+      const response = await fetch(`http://localhost:8000/evacuation-path?place=${city}&origin_lat=${startLat}&origin_lng=${startLng}&destination_lat=${endLat}&destination_lng=${endLng}&water_level=${waterLevel}`);
+      const data = await response.json();
+      
+      if (data.path && data.path.length > 1) {
+        setPath(data.path.map(point => [point.lat, point.lng]));
+      } else {
+        alert("Aucun chemin trouvé !");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération du chemin :", error);
+      alert("Erreur lors du calcul du chemin !");
+    }
+  };
 
   return (
     <div style={{ 
@@ -41,11 +58,10 @@ export default function MapView() {
       overflow: "hidden"
     }}>
     
-      
-      {/* 📌 Zone de la carte */}
+      {/* Zone de la carte */}
       <div style={{ border: "3px solid black" }}>
         <MapContainer 
-          center={[48.8566, 2.3522]} 
+          center={[48.1146, -1.657]} 
           zoom={13} 
           style={{ width: "100%", height: "100%" }}
         >
@@ -80,38 +96,38 @@ export default function MapView() {
         </MapContainer>
       </div>
   
-      {/* 📌 Colonne des paramètres */}
+      {/* Colonne des paramètres */}
       <div style={{ background: "#242424", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between",borderLeft: "10px solid #242424", boxShadow: "-2px 0 5px rgba(0, 0, 0, 0.1)",}}>
 
         <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Paramètres</h2>
+
+        <div style={{ marginBottom: "20px" }}>
+          <label>Ville</label>
+          <input type="text" value={city} onChange={(e) => setCity(e.target.value)} />
+        </div>
   
-        {/* Sélection des points */}
         <div style={{ marginBottom: "20px" }}>
           <label>🏁 Point de départ</label>
-          <input type="text" style={{ width: "100%", padding: "8px", border: "1px solid gray" }} placeholder="Latitude, Longitude" />
+          <input type="text" value={startPoint} onChange={(e) => setStartPoint(e.target.value)} />
         </div>
   
         <div style={{ marginBottom: "20px" }}>
           <label>🚩 Point d'arrivée</label>
-          <input type="text" style={{ width: "100%", padding: "8px", border: "1px solid gray" }} placeholder="Latitude, Longitude" />
+          <input type="text" value={endPoint} onChange={(e) => setEndPoint(e.target.value)} />
         </div>
-  
-        {/* Sliders météo */}
+
         <div style={{ marginBottom: "20px" }}>
-          <label>🌧️ Pluviométrie</label>
-          <input type="range" min="0" max="100" style={{ width: "100%" }} />
+          <label>🌧️ Niveau d'eau : {waterLevel}</label>
+          <input type="range" min="0" max="100" value={waterLevel} onChange={(e) => setWaterLevel(Number(e.target.value))} />
         </div>
   
-        <div style={{ marginBottom: "20px" }}>
-          <label>🌡️ Température</label>
-          <input type="range" min="-10" max="40" style={{ width: "100%" }} />
-        </div>
-  
-        {/* Bouton Envoyer */}
-        <button style={{ width: "100%", padding: "10px", background: "blue", color: "white", border: "none", cursor: "pointer" }}>
+        <button 
+          style={{ width: "100%", padding: "10px", background: "blue", color: "white", border: "none", cursor: "pointer" }}
+          onClick={fetchEvacuationPath}
+        >
           Envoyer au backend
         </button>
       </div>
     </div>
   );
-}  
+}

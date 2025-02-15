@@ -19,17 +19,27 @@ G = None  # Graph de la carte
 
 
 def load_map(place: str, network_type="drive"):
-    """Charge la carte d'une ville donnée et met à jour la variable globale G."""
+    """Charge la carte d'une ville donnée avec les altitudes et met à jour la variable globale G."""
     global G, current_city
 
     if G is None or place.lower() != current_city.lower():
         print(f"📍 Chargement de la carte pour {place}...")
         G = ox.graph_from_place(place, network_type=network_type, truncate_by_edge=True)
+
+        # Ajouter l'altitude aux noeuds
+        original_elevation_url = ox.settings.elevation_url_template
+        ox.settings.elevation_url_template = (
+            "https://api.opentopodata.org/v1/aster30m?locations={locations}"
+        )
+        G = ox.elevation.add_node_elevations_google(G, batch_size=100, pause=1)
+        G = ox.elevation.add_edge_grades(G)
+        ox.settings.elevation_url_template = original_elevation_url
+
         current_city = place.lower()
-        print(f"✅ Carte de {place} chargée avec succès !")
+        print(f"✅ Carte de {place} chargée avec succès, élévation incluse !")
 
 
-# Charger la carte initiale de Rennes au démarrage du serveur
+# Charger la carte initiale de Rennes avec les élévations au démarrage du serveur
 load_map("Rennes")
 
 
@@ -44,15 +54,7 @@ def coord_path_for_evacuation(
     # Vérifier si la carte actuelle correspond à la ville demandée
     if place.lower() != current_city.lower():
         load_map(place, network_type)
-
-    # Ajouter l'altitude aux noeuds
-    original_elevation_url = ox.settings.elevation_url_template
-    ox.settings.elevation_url_template = (
-        "https://api.opentopodata.org/v1/aster30m?locations={locations}"
-    )
-    G = ox.elevation.add_node_elevations_google(G, batch_size=100, pause=1)
-    G = ox.elevation.add_edge_grades(G)
-    ox.settings.elevation_url_template = original_elevation_url
+        print("🔄 Changement de ville")
 
     # Ajuster le niveau d'eau
     for node, data in G.nodes(data=True):
