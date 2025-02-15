@@ -11,7 +11,6 @@ const evacuationIcon = new L.Icon({
   popupAnchor: [0, -8]
 });
 
-// 🔹 Fix pour éviter un bug d'affichage des icônes Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -20,15 +19,14 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function MapView() {
-  const [path, setPath] = useState([]);  // 🔹 Stocke la liste des points GPS
+  const [path, setPath] = useState([]);
 
-  // 🔹 Fetch pour récupérer les coordonnées du chemin d’évacuation
   useEffect(() => {
     fetch("http://localhost:8000/coordinates")
       .then((response) => response.json())
       .then((data) => {
         if (data.path && data.path.length > 1) {
-          setPath(data.path.map(point => [point.lat, point.lng]));  // 🔹 Convertit les données pour Leaflet
+          setPath(data.path.map(point => [point.lat, point.lng]));
         }
       })
       .catch((error) => console.error("Erreur lors de la récupération du chemin:", error));
@@ -44,7 +42,6 @@ export default function MapView() {
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
         />
 
-        {/* 🔹 Affichage des marqueurs pour les points de départ et d'arrivée */}
         {path.length > 1 && (
           <>
             <Marker position={path[0]} icon={evacuationIcon}>
@@ -56,7 +53,6 @@ export default function MapView() {
           </>
         )}
 
-        {/* 🔹 Affichage des points intermédiaires avec un style discret */}
         {path.length > 2 && path.slice(1, -1).map((position, index) => (
           <CircleMarker 
             key={index} 
@@ -68,7 +64,6 @@ export default function MapView() {
           />
         ))}
 
-        {/* 🔹 Affichage du chemin (une ligne bleue reliant tous les points) */}
         {path.length > 1 && <Polyline positions={path} color="blue" />}
       </MapContainer>
     </div>
