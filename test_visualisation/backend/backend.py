@@ -5,6 +5,8 @@ import time
 from shapely.geometry import MultiPoint, Polygon
 from scipy.spatial import ConvexHull
 
+from model.XGboost import RiverLevelPredictor
+
 app = FastAPI()
 
 # On a besoin d'activer CORS sinon il bloque les requêtes venant du front
@@ -59,8 +61,18 @@ def get_flooded_zones(nodes_elevations):
 
     return [polygon_coords]  # Liste de polygones
 
+def graph_with_0_to_river_level(G, river_level):
+    for node, data in G.nodes(data=True):
+        if "elevation" in data:  # Vérifier que l'élévation existe
+            data["elevation"] -= river_level
+    gdf_nodes, gdf_edges = ox.graph_to_gdfs(G)
 
-def load_map(place: str, network_type="drive"):
+    print(f"DEBUG - min elevation après offset : {gdf_nodes['elevation'].min()}")
+    print(f"DEBUG - avg elevation après offset : {gdf_nodes['elevation'].mean()}")
+
+    
+
+def load_map(place: str, river_level: float, network_type="drive"):
     """Charge la carte d'une ville donnée avec les altitudes et met à jour la variable globale G."""
     global G, current_city
 
@@ -76,14 +88,118 @@ def load_map(place: str, network_type="drive"):
         G = ox.elevation.add_node_elevations_google(G, batch_size=100, pause=1)
         G = ox.elevation.add_edge_grades(G)
         ox.settings.elevation_url_template = original_elevation_url
+        
+        ######### Offset the river level to the graph elevation #########
+        gdf_nodes, gdf_edges = ox.graph_to_gdfs(G)
+        print(f"DEBUG - min elevation avant offset : {gdf_nodes['elevation'].min()}")
+        print(f"DEBUG - avg elevation avant offset : {gdf_nodes['elevation'].mean()}")
+        graph_with_0_to_river_level(G, river_level)
+        G = ox.elevation.add_edge_grades(G, add_absolute=True)
 
         current_city = place.lower()
         print(f"Carte de {place} chargée avec succès, élévation incluse !")
+        print('TEEEEEEEEEEEEEEEESSST')
 
 
 # Charger la carte initiale de Rennes avec les élévations au démarrage du serveur
-load_map("Rennes")
+load_map("Saintes, Nouvelle-Aquitaine", river_level=7)
 
+def get_water_level_pred(curser1, curser2, curser3):
+    estimator = RiverLevelPredictor()
+    X_new = estimator.create_data_from_curser([curser1, curser2, curser3], (100, 1))
+    pred = estimator.predict(X_new)
+    print(f' DEBUG - Prédiction du niveau de l\'eau : {pred}')
+    return pred
+
+def coord_path_for_evacuation(place, origin, destination, network_type="drive", water_level=0):
+    '''
+    This function returns the coordinates of the path for evacuation
+
+    Parameters
+    ----------
+    place : str
+        "Chelles, Seine-et-Marne, France"
+        The city adress.
+    origin : tuple
+        (48.883, 2.600)
+        The coordinates of the origin (latitude, longitude).
+    detination : tuple
+        (48.885, 2.605)
+        The coordinates of the destination (latitude, longitude).
+    network_type : str, optional
+        {"drive", "walk", "bike", "all", "all_private", "none"}
+        The type of network to use for the path. The default is "drive".
+
+    Returns
+    -------
+    coord_route : list
+        [(48.883, 2.600), (48.884, 2.601), (48.885, 2.605)] or None if path is impossible .
+        The coordinates of the path.
+    all_nodes_elevations : list
+        [(node1, latitude1, longitude1), (node2, latitude2, longitude2), ...]
+
+    '''
+
+    G_neg = G.copy()
+
+    ######### Add water elevation to the graph #########
+    # add water level to each of the nodes of the graph G
+    for node, data in G_neg.nodes(data=True):
+        if "elevation" in data:  # Vérifier que l'élévation existe
+            data["elevation"] -= water_level
+
+    gdf_nodes, gdf_edges = ox.graph_to_gdfs(G_neg)
+    print(f"DEBUG - min elevation après river_elevation : {gdf_nodes['elevation'].min()}")
+    print(f"DEBUG - avg elevation après river_elevation : {gdf_nodes['elevation'].mean()}")
+
+    G1 = G_neg.copy()
+
+    # add edge grades and their absolute values
+
+    gdf_nodes, gdf_edges = ox.graph_to_gdfs(G1)
+    all_nodes_elevations = [(data["y"], data["x"], data["elevation"]) for node, data in G1.nodes(data=True)]
+
+    ######### Remove nodes with negative elevation #########
+    nodes_to_remove = [node for node, data in G1.nodes(data=True) if data.get("elevation", 0) < 0]
+    print(f"Nœuds supprimés pour inondation : {len(nodes_to_remove)}")
+
+
+    G_neg.remove_nodes_from(nodes_to_remove)
+
+    gdf_filtered_nodes, gdf_edges = ox.graph_to_gdfs(G_neg)
+
+    ######### Get the path #########
+
+    '''
+    # select an origin and destination node and a bounding box around them
+    origin = ox.distance.nearest_nodes(G, origin[0], origin[1])
+    destination = ox.distance.nearest_nodes(G, destination[0], destination[1])
+    '''
+
+    try:
+        origin_node = ox.distance.nearest_nodes(G1, origin[1], origin[0])
+        destination_node = ox.distance.nearest_nodes(G1, destination[1], destination[0])
+    except Exception as e:
+        print(f"Erreur : Impossible de trouver un nœud proche - {e}")
+        return None, all_nodes_elevations
+
+
+
+    route = ox.routing.shortest_path(G_neg, origin_node, destination_node, weight="length")
+    if route is None:
+        print("Aucun chemin trouvé, la destination est inaccessible.")
+        return None , all_nodes_elevations
+
+    coord_route = list(gdf_filtered_nodes.loc[route, ["y", "x"]].itertuples(index=False, name=None))
+    print(f"Chemin trouvé avec {len(coord_route)} étapes.")
+
+    print(f"DEBUG - Coordonnées du chemin : {coord_route[:5]}... (total: {len(coord_route)})")
+    print(f"DEBUG - Premiers nœuds avec élévation : {all_nodes_elevations[:5]}... (total: {len(all_nodes_elevations)})")
+
+    return coord_route , all_nodes_elevations
+
+
+'''
 def coord_path_for_evacuation(place, origin, destination, network_type="drive", water_level=0):
     """
     Cette fonction retourne les coordonnées du chemin d'évacuation.
@@ -92,7 +208,7 @@ def coord_path_for_evacuation(place, origin, destination, network_type="drive", 
     ----------
     place : str
         "Chelles, Seine-et-Marne, France"
-        Le nom de la ville.
+        Le nom de la ville. 
     origin : tuple
         (48.883, 2.600)
         Coordonnées du point de départ (latitude, longitude).
@@ -181,7 +297,7 @@ def coord_path_for_evacuation(place, origin, destination, network_type="drive", 
     coord_route = list(gdf_filtered_nodes.loc[route, ["y", "x"]].itertuples(index=False, name=None))
 
     return coord_route , all_nodes_elevations
-
+'''
 
 @app.get("/evacuation-path")
 def get_evacuation_path(
