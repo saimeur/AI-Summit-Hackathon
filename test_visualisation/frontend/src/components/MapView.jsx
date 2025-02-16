@@ -21,40 +21,6 @@ L.Icon.Default.mergeOptions({
     shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
 });
 
-// function HeatmapLayer({ nodesElevation }) {
-//   const map = useMap();
-
-//   useEffect(() => {
-//       if (!map || nodesElevation.length === 0) return;
-
-//       // 🔹 Filtrer les nœuds inondés (altitude négative)
-//       const heatData = nodesElevation
-//           .filter(([lat, lng, elevation]) => elevation < 0)
-//           .map(([lat, lng]) => [lat, lng, 1]); // Dernier paramètre = intensité
-
-//       console.log("🔵 Points inondés détectés :", heatData);
-
-//       if (heatData.length === 0) return;
-
-//       const heatLayer = L.heatLayer(heatData, {
-//           radius: 20,
-//           blur: 15,
-//           maxZoom: 13,
-//           // Dégradé bleu → bleu clair 
-//           gradient: { 0.4: 'blue', 0.65: 'cyan', 1: 'white' }
-//       });
-
-//       map.addLayer(heatLayer);
-
-//       // ⚠️ Nettoyer la heatmap lors du démontage
-//       return () => {
-//           map.removeLayer(heatLayer);
-//       };
-//   }, [map, nodesElevation]);
-
-//   return null;
-// }
-
 function LocationSelector({ setPoint, active }) {
   useMapEvents({
     click(e) {
@@ -96,10 +62,12 @@ function FloodedZonesLayer({ floodedZones }) {
 
 export default function MapView() {
   const [path, setPath] = useState([]);
-  const [city, setCity] = useState("Rennes");
-  const [startPoint, setStartPoint] = useState("48.11588, -1.66927");
-  const [endPoint, setEndPoint] = useState("48.11963, -1.65031");
-  const [waterLevel, setWaterLevel] = useState(0);
+  const [city, setCity] = useState("Saintes, Nouvelle-Aquitaine");
+  const [startPoint, setStartPoint] = useState("45.747967, -0.641775");
+  const [endPoint, setEndPoint] = useState("45.738988, -0.642589");
+  const [waterLevel, setWaterLevel] = useState(0);// 0 10
+  const [RiverDischarge, setRiverDischarge] = useState(500);// 0 1000
+  const [RainLevel, setRainLevel] = useState(2);// 0 3
   const [loading, setLoading] = useState(false);
   const [aucunChemin, setAucunChemin] = useState(false);
   // const [nodesElevation, setNodesElevation] = useState([]);
@@ -120,7 +88,7 @@ export default function MapView() {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/evacuation-path?place=${city}&origin_lat=${startLat}&origin_lng=${startLng}&destination_lat=${endLat}&destination_lng=${endLng}&water_level=${waterLevel}`);
+      const response = await fetch(`http://localhost:8000/evacuation-path?place=${city}&origin_lat=${startLat}&origin_lng=${startLng}&destination_lat=${endLat}&destination_lng=${endLng}&water_level=${waterLevel}&riverdischarge=${RiverDischarge}&rain=${RainLevel}`);
 
       const data = await response.json();
 
@@ -161,7 +129,7 @@ export default function MapView() {
     }}>
     
       <div style={{ border: "0px solid black" }}>
-      <MapContainer center={[48.1146, -1.657]} zoom={13} style={{ width: "100%", height: "100%" }}>
+      <MapContainer center={[45.738988, -0.642589]} zoom={13} style={{ width: "100%", height: "100%" }}>
           <TileLayer
               url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               attribution='&copy; <a href="https://carto.com/">CARTO</a>'
@@ -232,14 +200,54 @@ export default function MapView() {
         </div>
 
         <div style={{ marginBottom: "20px" }}>
-          <label>🌧️ Niveau d'eau : {waterLevel}</label>
+          <label>Rain Accumulation : {waterLevel}</label>
           <br />
           <input 
             type="range" 
             min="0" 
-            max="25" 
+            max="10" 
             value={waterLevel} 
             onChange={(e) => setWaterLevel(Number(e.target.value))} 
+            style={{
+              width: "100%",
+              background: `linear-gradient(to right, #3587A4 0%, #EF767A 100%)`,
+              appearance: "none",
+              height: "8px",
+              borderRadius: "4px",
+              outline: "none"
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: "20px" }}>
+          <label>Rain : {RainLevel}</label>
+          <br />
+          <input 
+            type="range" 
+            min="0" 
+            max="3" 
+            value={RainLevel} 
+            onChange={(e) => setRainLevel(Number(e.target.value))} 
+            style={{
+              width: "100%",
+              background: `linear-gradient(to right, #3587A4 0%, #EF767A 100%)`,
+              appearance: "none",
+              height: "8px",
+              borderRadius: "4px",
+              outline: "none"
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: "20px" }}>
+          <label>River discharge : {RiverDischarge}</label>
+          <br />
+          <input 
+            type="range" 
+            min="0" 
+            max="1000" 
+            value={RiverDischarge} 
+            onChange={(e) => setRiverDischarge(Number(e.target.value))} 
             style={{
               width: "100%",
               background: `linear-gradient(to right, #3587A4 0%, #EF767A 100%)`,
