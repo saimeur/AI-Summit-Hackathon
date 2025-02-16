@@ -55,6 +55,17 @@ L.Icon.Default.mergeOptions({
 //   return null;
 // }
 
+function LocationSelector({ setPoint, active }) {
+  useMapEvents({
+    click(e) {
+      if (active) {
+        setPoint(`${e.latlng.lat}, ${e.latlng.lng}`);
+      }
+    }
+  });
+  return null;
+}
+
 function FloodedZonesLayer({ floodedZones }) {
   const map = useMap(); // 🔥 Accès à la carte Leaflet
 
@@ -146,40 +157,39 @@ export default function MapView() {
       gridTemplateColumns: "75% 25%",  
       height: "90vh", 
       width: "90vw",
-      overflow: "hidden"
+      overflow: "hidden",
     }}>
     
-      <div style={{ border: "3px solid black" }}>
+      <div style={{ border: "0px solid black" }}>
       <MapContainer center={[48.1146, -1.657]} zoom={13} style={{ width: "100%", height: "100%" }}>
           <TileLayer
               url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               attribution='&copy; <a href="https://carto.com/">CARTO</a>'
           />
-
           {/* <HeatmapLayer nodesElevation={nodesElevation} /> */}
           <FloodedZonesLayer floodedZones={floodedZones} />
 
           {path.length > 1 && (
               <>
                   <Marker position={path[0]} icon={evacuationIcon}>
-                      <Popup>Départ</Popup>
+                      <Popup>Start</Popup>
                   </Marker>
                   <Marker position={path[path.length - 1]} icon={evacuationIcon}>
-                      <Popup>Arrivée</Popup>
+                      <Popup>Stop</Popup>
                   </Marker>
               </>
           )}
 
-          {path.length > 1 && <Polyline positions={path} color="green" />}
+          {path.length > 1 && <Polyline positions={path} color="#84C1D7" />}
       </MapContainer>
 
 
         {aucunChemin && (
-          <div style={{position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", backgroundColor: "rgba(255, 0, 0, 0.9)", color: "white",
+          <div style={{position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", backgroundColor: "#EF767A", color: "white",
             padding: "20px", borderRadius: "10px", textAlign: "center", width: "50%", maxWidth: "400px", boxShadow: "0px 0px 10px rgba(0,0,0,0.5)", zIndex: 9999
           }}>
             <h2 style={{ fontSize: "20px", fontWeight: "bold" }}>⚠️ Zone inondée ⚠️</h2>
-            <p>Votre destination est inondée. Il est recommandé de rester en sécurité chez vous.</p>
+            <p>Your location is flooded. Please wait for evacuation</p>
             <button onClick={() => setAucunChemin(false)} 
               style={{ marginTop: "10px", padding: "10px", backgroundColor: "white", color: "red", border: "none", cursor: "pointer", fontWeight: "bold", borderRadius: "5px" }}>
               Fermer
@@ -191,38 +201,62 @@ export default function MapView() {
       {/* Colonne des paramètres */}
       <div style={{ background: "#242424", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between",borderLeft: "10px solid #242424", boxShadow: "-2px 0 5px rgba(0, 0, 0, 0.1)",}}>
 
-        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Paramètres</h2>
+        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Parameters</h2>
 
         <div style={{ marginBottom: "20px" }}>
-          <label>Ville</label>
+          <label>City</label>
           <br />
           <input type="text" value={city} onChange={(e) => setCity(e.target.value)} />
         </div>
   
-        <div style={{ marginBottom: "20px" }}>
-          <label >Point de départ</label>
-          <br />
-          <input type="text" value={startPoint} onChange={(e) => setStartPoint(e.target.value)} />
+        <div className="mb-5">
+          <label className="text-white text-lg font-semibold">Start</label>
+          <input
+            type="text"
+            value={startPoint}
+            onChange={(e) => setStartPoint(e.target.value)}
+            className="mt-2 w-full p-3 bg-[#0A1128] text-white border border-[#3587A4] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF767A] transition-all"
+            placeholder="Enter start point"
+          />
         </div>
-  
-        <div style={{ marginBottom: "20px" }}>
-          <label>Point d'arrivée</label>
-          <br />
-          <input type="text" value={endPoint} onChange={(e) => setEndPoint(e.target.value)} />
+
+        <div className="mb-5">
+          <label className="text-white text-lg font-semibold">End</label>
+          <input
+            type="text"
+            value={endPoint}
+            onChange={(e) => setEndPoint(e.target.value)}
+            className="mt-2 w-full p-3 bg-[#0A1128] text-white border border-[#3587A4] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EF767A] transition-all"
+            placeholder="Enter end point"
+          />
         </div>
 
         <div style={{ marginBottom: "20px" }}>
           <label>🌧️ Niveau d'eau : {waterLevel}</label>
           <br />
-          <input type="range" min="0" max="100" value={waterLevel} onChange={(e) => setWaterLevel(Number(e.target.value))} />
+          <input 
+            type="range" 
+            min="0" 
+            max="25" 
+            value={waterLevel} 
+            onChange={(e) => setWaterLevel(Number(e.target.value))} 
+            style={{
+              width: "100%",
+              background: `linear-gradient(to right, #3587A4 0%, #EF767A 100%)`,
+              appearance: "none",
+              height: "8px",
+              borderRadius: "4px",
+              outline: "none"
+            }}
+          />
         </div>
   
         <button 
-          style={{ width: "100%", padding: "10px", background: loading ? "gray" : "blue", color: "white", border: "none", cursor: loading ? "not-allowed" : "pointer" }}
+          style={{ width: "100%", padding: "10px", background: loading ? "gray" : "#84C1D7", color: "white", border: "none", cursor: loading ? "not-allowed" : "pointer" }}
           onClick={fetchEvacuationPath}
           disabled={loading}
         >
-          {loading ? "Calcul en cours..." : "Envoyer au backend"}
+          {loading ? "Computing..." : "Find a path"}
         </button>
       </div>
     </div>
