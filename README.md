@@ -2,7 +2,7 @@
 
 This project was developed during the **AI Action Summit Hackathon**, held on February 15-16, 2025, at Doctolib, in partnership with Back Market, Mistral AI, Nvidia, RAISE Summit, Scaleway, SIA Partners, and Sweep. The event brought together over a hundred participants to tackle challenges related to health and the environment under the theme **"One Health"**.
 
-Our team participated in the **health track**, made it to the **finals**, and ranked **4th out of 26 teams**.
+Our team (@NathanRouille, @tvbv, @Bastaxeloux, @saimeur) participated in the **health track**, made it to the **finals**, and ranked **4th out of 26 teams**.
 
 ## **Context**
 
